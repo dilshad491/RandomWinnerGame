@@ -1,0 +1,73 @@
+mkdir lottery-game
+cd lottery-game
+npm init -ynpm install express body-parser mongoose const express = require('express');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+
+const app = express();
+app.use(bodyParser.json());
+
+mongoose.connect('mongodb://localhost:27017/lottery', { useNewUrlParser: true, useUnifiedTopology: true });
+
+const playerSchema = new mongoose.Schema({
+    name: String,
+    number: Number,
+    amount: Number
+});
+
+const Player = mongoose.model('Player', playerSchema);
+
+app.post('/enter', async (req, res) => {
+    const player = new Player(req.body);
+    await player.save();
+    res.send(player);
+});
+
+app.get('/draw', async (req, res) => {
+    const players = await Player.find();
+    const winningNumber = Math.floor(Math.random() * 10) + 1;
+    const winner = players.find(player => player.number === winningNumber);
+    const prize = players.length * 50 * 0.5;
+    res.send({ winner, prize });
+});
+
+app.listen(3000, () => {
+    console.log('Server running on port 3000');
+}); <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery Game</title>
+</head>
+<body>
+    <h1>Lottery Game</h1>
+    <form id="entryForm">
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="number" id="number" placeholder="Choose a number (1-10)" min="1" max="10" required>
+        <button type="submit">Enter</button>
+    </form>
+    <button id="drawButton">Draw</button>
+    <div id="result"></div>
+    <script>
+        document.getElementById('entryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const number = document.getElementById('number').value;
+            const response = await fetch('/enter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, number, amount: 50 })
+            });
+            const result = await response.json();
+            alert('Entry Successful');
+        });
+
+        document.getElementById('drawButton').addEventListener('click', async () => {
+            const response = await fetch('/draw');
+            const result = await response.json();
+            document.getElementById('result').innerText = `Winner: ${result.winner ? result.winner.name : 'No Winner'}, Prize: ₹${result.prize}`;
+        });
+    </script>
+</body>
+</html> node server.js
